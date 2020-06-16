@@ -1,0 +1,9 @@
+## Interface: 80300
+## Title: HeroLobby
+## Notes: Companion addon for HeroLobby.com
+## Author: Rhaiv
+## Version: 0.1
+
+# Core
+core/HeroLobbyBase.lua
+core/init.lua
