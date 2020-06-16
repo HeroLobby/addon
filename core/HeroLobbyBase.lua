@@ -179,7 +179,7 @@ function HeroLobbyBase:HeroLobbyConfigBuild()
     HeroLobbyConfig.editBox:SetFontObject(ChatFontNormal);
     HeroLobbyConfig.editBox:SetWidth(285);
     HeroLobbyConfig.scrollFrame:SetScrollChild(HeroLobbyConfig.editBox);
-    HeroLobbyConfig.editBox:SetAutoFocus(true);
+    HeroLobbyConfig.editBox:SetAutoFocus(false);
     HeroLobbyConfig:Hide();
     return HeroLobbyConfig;
 end
