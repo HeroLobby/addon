@@ -181,6 +181,6 @@ function HeroLobbyBase:HeroLobbyConfigBuild()
     HeroLobbyConfig.scrollFrame:SetScrollChild(HeroLobbyConfig.editBox);
     HeroLobbyConfig.editBox:SetText("Title:Test Event,Type:Dungeon,Date:Month.06 Day.19 Year.2020,Time:Hour.18 Minute.30,Description:best event ever,Heroes:Yseldris-EmeraldDream Rhaiv-EmeraldDream Rhaivault-EmeraldDream");
     HeroLobbyConfig.editBox:SetAutoFocus(false);
-
+    HeroLobbyConfig:Hide();
     return HeroLobbyConfig;
 end

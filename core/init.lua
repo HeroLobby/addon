@@ -80,7 +80,7 @@ function core:init(event, name)
     core:Print("Welcome back", UnitName("player") .. "!");
 
     -- debugging mode 
-    -- core.HeroLobbyBase:HeroLobbyConfigBuild()
+    core.HeroLobbyBase:HeroLobbyConfigBuild()
 end
 
 local events = CreateFrame("Frame");
