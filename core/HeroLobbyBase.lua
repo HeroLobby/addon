@@ -1,7 +1,8 @@
 local addonName, core = ...;
 core.HeroLobbyBase = { };
+local inviteString;
 local HeroLobbyBase = core.HeroLobbyBase;
-local HeroLobbyConfig = { };
+local HeroLobbyInviteFrame = { };
 HeroLobbyBase.inviteeTable = { };
 HeroLobbyBase.canInvite = false;
 HeroLobbyBase.eventTitle = "";
@@ -15,9 +16,10 @@ local defaults = {
 }
 -----------------------------------------------------------------
 -----------------------------------------------------------------
-function HeroLobbyBase:Toggle()
-    local menu = HeroLobbyConfig or HeroLobbyBase:HeroLobbyConfigBuild();
+function HeroLobbyBase:Invite()
+    local menu = HeroLobbyInviteFrame or HeroLobbyBase:HeroLobbyInviteFrameBuild();
     menu:SetShown(not menu:IsShown());
+    HeroLobbyInviteFrame.editBox:SetText("");
 end
 
 function HeroLobbyBase:GetThemeColor()
@@ -29,21 +31,23 @@ local waitTable = { };
 local waitFrame = nil;
 
 function HeroLobbyBase:Wait(delay, func, ...)
-  if(type(delay)~="number" or type(func)~="function") then
+  if (type(delay) ~= "number" or type(func) ~= "function") then
     return false;
   end
-  if(waitFrame == nil) then
+
+  if (waitFrame == nil) then
     waitFrame = CreateFrame("Frame","WaitFrame", UIParent);
-    waitFrame:SetScript("onUpdate",function (self,elapse)
+    waitFrame:SetScript("onUpdate", function (self, elapse)
       local count = #waitTable;
       local i = 1;
-      while(i<=count) do
+      while (i<=count) do
         local waitRecord = tremove(waitTable,i);
         local d = tremove(waitRecord,1);
         local f = tremove(waitRecord,1);
         local p = tremove(waitRecord,1);
-        if(d>elapse) then
-          tinsert(waitTable,i,{d-elapse,f,p});
+        
+        if (d > elapse) then
+          tinsert(waitTable, i, {d-elapse, f, p});
           i = i + 1;
         else
           count = count - 1;
@@ -52,12 +56,13 @@ function HeroLobbyBase:Wait(delay, func, ...)
       end
     end);
   end
+
   tinsert(waitTable,{delay,func,{...}});
   return true;
 end
 
 function HeroLobbyBase:CreateButton(point, relativeFrame, relativePoint, yOffset, xOffset, text)
-    local button = CreateFrame("Button", nil, HeroLobbyConfig, "GameMenuButtonTemplate");
+    local button = CreateFrame("Button", nil, HeroLobbyInviteFrame, "GameMenuButtonTemplate");
     button:SetPoint(point, relativeFrame, relativePoint, yOffset, xOffset);
     button:SetSize(140, 30);
     button:SetText(text);
@@ -67,119 +72,62 @@ function HeroLobbyBase:CreateButton(point, relativeFrame, relativePoint, yOffset
 end
 
 function HeroLobbyBase:BuildBackgroundFrame()
-    HeroLobbyConfig = CreateFrame("Frame", "HeroLobby_Config", UIParent, "BasicFrameTemplateWithInset");
-    HeroLobbyConfig:SetSize(325, 380);
-    HeroLobbyConfig:SetPoint("CENTER", UIParent, "CENTER");
-    HeroLobbyBase:CreateFrameTitle(addonName, HeroLobbyConfig);
-    HeroLobbyConfig:SetMovable(true);
-    HeroLobbyConfig:EnableMouse(true);
-    HeroLobbyConfig:RegisterForDrag("LeftButton");
-    HeroLobbyConfig:SetScript("OnDragStart", HeroLobbyConfig.StartMoving);
-    HeroLobbyConfig:SetScript("OnDragStop", HeroLobbyConfig.StopMovingOrSizing);
+    HeroLobbyInviteFrame = CreateFrame("Frame", "HeroLobby_Config", UIParent, "BasicFrameTemplateWithInset");
+    HeroLobbyInviteFrame:SetSize(325, 180);
+    HeroLobbyInviteFrame:SetPoint("CENTER", UIParent, "CENTER");
+    HeroLobbyBase:CreateFrameTitle(addonName, HeroLobbyInviteFrame);
+    HeroLobbyInviteFrame:SetMovable(true);
+    HeroLobbyInviteFrame:EnableMouse(true);
+    HeroLobbyInviteFrame:RegisterForDrag("LeftButton");
+    HeroLobbyInviteFrame:SetScript("OnDragStart", HeroLobbyInviteFrame.StartMoving);
+    HeroLobbyInviteFrame:SetScript("OnDragStop", HeroLobbyInviteFrame.StopMovingOrSizing);
+    
+    local HeroLobbyText = HeroLobbyInviteFrame:CreateFontString(f, "OVERLAY", "GameTooltipText");
+    HeroLobbyText:SetPoint("TOPLEFT", 10, -30);
+    HeroLobbyText:SetText("Paste the HeroLobby invite string here.");
+    HeroLobbyText:SetTextColor(230, 204, 128);
 end
 
 function HeroLobbyBase:CreateFrameTitle(titleText, frame)
     frame.title = frame:CreateFontString(nil, "OVERLAY");
     frame.title:SetFontObject("GameFontHighlight");
     frame.title:SetPoint("CENTER", frame.TitleBg, "CENTER", 5, 0);
-    frame.title:SetText(titleText);
+    frame.title:SetText("HeroLobby invite tool");
 end
 
 function HeroLobbyBase:AttachButtons()
-    local createEventButton = HeroLobbyBase:CreateButton("BOTTOM", HeroLobbyConfig, "BOTTOM", 0, 10, "Import Event");
-    createEventButton:SetScript("OnClick", HeroLobbyBase.CreateCalendarEvent);
+    local createEventButton = HeroLobbyBase:CreateButton("BOTTOM", HeroLobbyInviteFrame, "BOTTOM", 0, 10, "Start inviting");
+    createEventButton:SetScript("OnClick", HeroLobbyBase.StartInvites);
 end
 
-function HeroLobbyBase:CanInvite() 
-    HeroLobbyBase.canInvite = C_Calendar.CanSendInvite();
-    if next(HeroLobbyBase.inviteeTable) == nil then
-        return;         
-    end
-    if (HeroLobbyBase.canInvite) then
-        HeroLobbyBase:InvitePlayer();
-    end
-end
-
-function HeroLobbyBase:DelayCanInvite()
-    HeroLobbyBase:Wait(2, HeroLobbyBase.CanInvite);
-end
-
-function HeroLobbyBase:InvitePlayer()
-    if next(HeroLobbyBase.inviteeTable) == nil then 
-        return;
-    end
-    local index, player = next(HeroLobbyBase.inviteeTable);
-    core:Print("Inviting Player: " .. player);
-    C_Calendar.EventInvite(player);
-    table.remove(HeroLobbyBase.inviteeTable, 1);
-    if next(HeroLobbyBase.inviteeTable) == nil then
-        HeroLobbyBase:Wait(1, core.Print, " ", "Your event was created with title: " .. HeroLobbyBase.eventTitle);
-    end
-end
-
-function HeroLobbyBase:CreateCalendarEvent()
-    local importString = HeroLobbyConfig.editBox:GetText();
-    local eventTable = { };
-    local eventDateTable = { };
-    local eventTimeTable = { };
-    local eventTypeMap = {
-        ["Raid"] = CALENDAR_EVENTTYPE_RAID,
-        ["Dungeon"] = CALENDAR_EVENTTYPE_DUNGEON,
-        ["PvP"] = CALENDAR_EVENTTYPE_PVP,
-        ["Meeting"] = CALENDAR_EVENTTYPE_MEETING,
-        ["Other"] = CALENDAR_EVENTTYPE_OTHER
-    };
-
-    -- regiter event and setscript for invites
-    HeroLobbyConfig:RegisterEvent("CALENDAR_ACTION_PENDING");
-    HeroLobbyConfig:SetScript("OnEvent", HeroLobbyBase.DelayCanInvite);
+function HeroLobbyBase:StartInvites() 
+    local amountOfPlayers = 0;
+    local myName = UnitName("player");
+    local rosterSize = GetNumGroupMembers() or 0;
     
-    -- create table for event meta data
-    for key, value in string.gmatch(importString, "([^,]+):([^,]+)") do
-        eventTable[key] = value;
+    for inviteTarget in string.gmatch(inviteString, "([^;]+)") do
+        amountOfPlayers = amountOfPlayers + 1
+        InviteUnit(inviteTarget)
     end
 
-    HeroLobbyBase.eventTitle = eventTable.Title;
-
-    -- create table for date
-    for key, value in string.gmatch(eventTable.Date, "([%S]+)%p([%S]+)") do
-        eventDateTable[key] = value;
-    end
-
-    -- create table for invitees
-    for value in string.gmatch(eventTable.Heroes, "([%S]+)") do
-        table.insert(HeroLobbyBase.inviteeTable, value);
-    end
-
-    -- create table for time
-    for key, value in string.gmatch(eventTable.Time, "([%S]+)%p([%S]+)") do
-        eventTimeTable[key] = value;
-    end
-
-    -- LoadAddOn("Blizzard_Calendar");
-    C_Calendar.CreatePlayerEvent();
-    C_Calendar.EventSetDate(eventDateTable.Month, eventDateTable.Day, eventDateTable.Year);
-    C_Calendar.EventSetDescription(eventTable.Description);
-    -- event:CalendarEventSetRepeatOption();
-    C_Calendar.EventSetTime(eventTimeTable.Hour, eventTimeTable.Minute);
-    C_Calendar.EventSetTitle(eventTable.Title);
-    C_Calendar.EventSetType(eventTypeMap[eventTable.Type]);
-    C_Calendar.AddEvent();
+    core:Print("Invites have started! " .. amountOfPlayers .. " players are invited.");
+    HeroLobbyInviteFrame:Hide();
 end
 
-function HeroLobbyBase:HeroLobbyConfigBuild()
+function HeroLobbyBase:HeroLobbyInviteFrameBuild()
     HeroLobbyBase:BuildBackgroundFrame();
     HeroLobbyBase:AttachButtons();
-
-    HeroLobbyConfig.scrollFrame = CreateFrame("ScrollFrame", nil, HeroLobbyConfig, "UIPanelScrollFrameTemplate");
-    HeroLobbyConfig.scrollFrame:SetSize(283,300);
-    HeroLobbyConfig.scrollFrame:SetPoint("TOPLEFT", HeroLobbyConfig, "TOPLEFT", 10, -30);
-    HeroLobbyConfig.editBox = CreateFrame("EditBox", nil, HeroLobbyConfig.scrollFrame);
-    HeroLobbyConfig.editBox:SetMultiLine(true);
-    HeroLobbyConfig.editBox:SetFontObject(ChatFontNormal);
-    HeroLobbyConfig.editBox:SetWidth(285);
-    HeroLobbyConfig.scrollFrame:SetScrollChild(HeroLobbyConfig.editBox);
-    HeroLobbyConfig.editBox:SetAutoFocus(false);
-    HeroLobbyConfig:Hide();
-    return HeroLobbyConfig;
+    HeroLobbyInviteFrame.scrollFrame = CreateFrame("ScrollFrame", nil, HeroLobbyInviteFrame, "UIPanelScrollFrameTemplate");
+    HeroLobbyInviteFrame.scrollFrame:SetSize(280, 70);
+    HeroLobbyInviteFrame.scrollFrame:SetPoint("TOPLEFT", HeroLobbyInviteFrame, "TOPLEFT", 13, -55);
+    HeroLobbyInviteFrame.editBox = CreateFrame("EditBox", nil, HeroLobbyInviteFrame.scrollFrame);
+    HeroLobbyInviteFrame.editBox:SetMultiLine(true);
+    HeroLobbyInviteFrame.editBox:SetFontObject(ChatFontNormal);
+    HeroLobbyInviteFrame.editBox:SetWidth(285);
+    HeroLobbyInviteFrame.editBox:SetScript("OnEscapePressed", function(self) HeroLobbyInviteFrame:Hide() end);
+    HeroLobbyInviteFrame.scrollFrame:SetScrollChild(HeroLobbyInviteFrame.editBox);
+    HeroLobbyInviteFrame.editBox:SetScript("OnTextChanged", function(self) inviteString = self:GetText() end)
+    HeroLobbyInviteFrame.editBox:SetAutoFocus(true);
+    HeroLobbyInviteFrame:Hide();
+    return HeroLobbyInviteFrame;
 end

@@ -1,24 +1,12 @@
 local addonName, core = ...;
 
 core.commands = {
-    ["config"] = core.HeroLobbyBase.Toggle,
-    ["help"] = function() 
-        print(" ");
-        core:Print("List of slash commands:");
-        core:Print("|cff00cc66/hl config|r - shows config window");
-        core:Print("|cff00cc66/hl help|r - shows a list of slash commands");
-        print(" ");
-    end,
-    ["example"] = {
-        ["test"] = function(...)
-            core:Print("My Value:", tostringall(...));
-        end
-    }
+    ["invite"] = core.HeroLobbyBase.Invite,
 };
 
 local function HandleSlashCommands(str)
     if (#str == 0) then
-        core.commands.help();
+        core.commands.invite();
         return;
     end
 
@@ -40,11 +28,11 @@ local function HandleSlashCommands(str)
             elseif (type(path[arg]) == "table") then
                 path = path[arg];
             else
-                core.commands.help();
+                core.commands.invite();
                 return;
             end
         else
-            core.commands.help();
+            core.commands.invite();
             return;
         end
     end
@@ -63,24 +51,21 @@ function core:init(event, name)
         _G["ChatFrame" .. i .. "EditBox"]:SetAltArrowKeyMode(false);
     end
 
-    SLASH_RELOADUI1 = "/rl";
-    SlashCmdList.RELOADUI = ReloadUI;
+    -- SLASH_RELOADUI1 = "/rl";
+    -- SlashCmdList.RELOADUI = ReloadUI;
 
-    SLASH_FRAMESTK1 = "/fs";
+    -- SLASH_FRAMESTK1 = "/fs";
 
-    SlashCmdList.FRAMESTK = function() 
-        LoadAddOn('Blizzard_DebugTools');
-        FrameStackTooltip_Toggle();
-    end
+    -- SlashCmdList.FRAMESTK = function() 
+    --     LoadAddOn('Blizzard_DebugTools');
+    --     FrameStackTooltip_Toggle();
+    -- end
 
     -- slash commands 
-    SLASH_HeroLobby1 = "/hl";
+    SLASH_HeroLobby1 = "/herolobby";
     SlashCmdList.HeroLobby = HandleSlashCommands;
-
-    core:Print("Welcome back", UnitName("player") .. "!");
-
-    -- debugging mode 
-    core.HeroLobbyBase:HeroLobbyConfigBuild()
+    
+    core.HeroLobbyBase:HeroLobbyInviteFrameBuild()
 end
 
 local events = CreateFrame("Frame");
