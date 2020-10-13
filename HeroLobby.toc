@@ -1,4 +1,4 @@
-## Interface: 80300
+## Interface: 90001
 ## Title: HeroLobby
 ## Notes: Companion addon for HeroLobby.com
 ## Author: Rhaiv, Bart
